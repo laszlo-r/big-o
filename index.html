@@ -19,19 +19,18 @@
 		<a class='wiki-help' href="http://simple.wikipedia.org/wiki/Big_O_notation" target='new'>(Big what?)</a>
 		<h1>Big-O on canvas</h1>
 		<p>This page shows how fast various algorithms are with different input sizes. While sorting 5 books is fast, sorting 500 books is much, much slower (not 100, but 10000 times slower).</p>
-		<p>But, if you have some tricky sorting method (blue line), it will be faster than comparing every book to every other (green).</p>
+		<p>But, if you have some tricky sorting method (blue line), it will be faster than comparing every book to every other (green line).</p>
 		<h2>Things you can do here:</h2>
 		<p>
 			<span>- drag on the canvas to scale the chart</span>
 			<span>- set the grid size manually or <a class='reset' href='' onclick='return bigO.refresh({ reset: 1 });'>reset it</a><br />
 				<b class='grid'>grid = </b>
-				<input id='gridx' type='text' name='gridx' value='3' />x
-				<input id='gridy' type='text' name='gridy' value='3' />
+				<input id='gridx' type='text' name='gridx' value='' />x
+				<input id='gridy' type='text' name='gridy' value='' />
 			</span>
-			<span>- change the polynomial factor: <b>p = </b><input id='p' type='text' name='p' value='3' /></span>
-			<span>- or the exponential factor: <b>c = </b><input id='c' type='text' name='c' value='3' /></span>
+			<span>- change the polynomial factor: <b>p = </b><input id='p' type='text' name='p' value='' /></span>
+			<span>- or the exponential factor: <b>c = </b><input id='c' type='text' name='c' value='' /></span>
 			<span>- open up the js console and mess around</span>
-			<span>- read more about this <a href='http://en.wikipedia.org/wiki/Big_O_notation#Orders_of_common_functions' target='new'>on wikipedia</a></span>
 		</p>
 		<h2>Time complexities shown:</h2>
 		<p id='algorithms'></p>
@@ -41,6 +40,13 @@
 			<span>- loglinear is always a good compromise, since the logarithmic part <a href='' onclick='return bigO.refresh({ gridx: 0.004, gridy: 0.0002 })'>always stays small</a></span>
 			<span>- factorial is calculated for non-discreet values via the <a href='http://en.wikipedia.org/wiki/Gamma_function' target='new'>gamma function</a> (the reason for the small blip at x=0)</span>
 			<span>- zooming to small grid-x removes some of the curves in this implementation (due to the flooring used, I may ocd about this later)</span>
+		</p>
+		<h2>Links and terms:</h2>
+		<p>
+			<span>- <a href='https://github.com/rozsahegyi/big-o'>https://github.com/rozsahegyi/big-o</a></span>
+			<span>- you can use this <a href='http://creativecommons.org/licenses/by-sa/3.0'>as long as you credit me</a></span>
+			<span>- use Chrome or Firefox, <a href='mailto:laszlo@rozsahegyi.info'>tell me</a> about bugs</span>
+			<span>- read more about <a href='http://en.wikipedia.org/wiki/Big_O_notation#Orders_of_common_functions' target='new'>Big O notation</a></span>
 		</p>
 	</section>
 	<canvas id='canvas'></canvas>

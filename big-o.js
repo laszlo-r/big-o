@@ -7,7 +7,9 @@
 			this.canvas = $('canvas').getContext('2d');
 			this.window_resize = Event.on(window, 'resize', function() { window.bigO.lazy_refresh(); })
 
-			this.colors = "ff0000,ffff00,00ff00,00ffff,4444ff,ff00ff"
+			// this.colors = "ff0000,ffff00,00ff00,00ffff,4444ff,ff00ff"
+			// this.colors = this.colors.split(',').map(function(a) { return a.match(/.{2}/g).map(function(b) { return parseInt(b, 16); }); })
+
 			this.metrics = { minx: 500, miny: 500, gridx: 20, gridy: 20, griddef: 20, gridmax: 300, gridmin: 0.0001, p: 3, c: 3 }
 
 			this.algorithms = [
@@ -38,7 +40,7 @@
 					f2 = F(i + step) // F at the next step
 					area = step * (f1 + f2) / 2 // estimated area between f1 and f2
 					f1 = f2 // use this on the next step
-					if (!Number.isNaN(area)) result += area
+					if (!isNaN(area)) result += area
 				}
 
 				// if (b - a) is not properly dividable by step, we have to add the remaining area
@@ -55,26 +57,36 @@
 			// calculate the gamma integral for a given n
 			this.gamma_integral = function(n) { return integral(function(x) { return gamma(x, n); }, range); }
 
-			var colors = this.colors.split(',').map(function(a) { return a.match(/.{2}/g).map(function(b) { return parseInt(b, 16); }); })
-
 			var init_algorithm = function(item, i) {
 				this.algorithms[i][3] = new Function("n", "p", "c", "return " + item[2] + ";");
-				// this.algorithms[i][4] = this.color_map(colors, this.algorithms.length - i - 1, this.algorithms.length - 1)
+				// this.algorithms[i][4] = this.color_map(this.colors, this.algorithms.length - i - 1, this.algorithms.length - 1)
 			}
 
 			this.algorithms.each(init_algorithm, this)
 		}
 
 		this.setup_ui = function() {
+			var css = function(x, p) { return window.getMatchedCSSRules ? window.getMatchedCSSRules(x)[0].style[p] : window.getComputedStyle(x)[p]; }
+			this.font = css(document.getElementsByTagName('p')[0], 'fontSize') + " " + css(document.documentElement, 'fontFamily')
+
 			$('algorithms').insert({ 
 				top: this.algorithms.map(
 					function(x) { return "- <b style='color: #" + x[4] + "'>" + x[0] + ":</b> " + x[1]; }
 				).join("<br />")
 			})
-			$('gridx').value = this.metrics.gridx
-			$('gridy').value = this.metrics.gridy
-			$('p').value = this.metrics.p
-			$('c').value = this.metrics.c
+
+			this.ui_list = 'gridx,gridy,p,c'.split(',')
+
+			this.ui_list.each(function(item) {
+				var e = $(item)
+				e.value = this.metrics[item]
+				e.onchange = function() { var param = {}; param[this.name] = parseFloat(this.value); bigO.refresh(param); }
+			}, this)
+
+		}
+
+		this.update_ui = function() {
+			this.ui_list.each(function(item) { $(item).value = this.metrics[item]; }, this)
 		}
 
 		this.event_handlers = function() {
@@ -114,9 +126,10 @@
 			// this is called on mouse dragging
 			this.resize_event = function(e) {
 				// mouse movement relative to mousedown coordinates
-				var dx = e.x - this.mouse.x, 
-					dy = -(e.y - this.mouse.y)
+				var dx = (e.x || e.clientX) - this.mouse.x, 
+					dy = -((e.y || e.clientY) - this.mouse.y)
 
+				console.log([dx, dy])
 				// scale and normalize movement
 				dx = normalize(scale(dx), this.metrics.gridmax, this.metrics.gridmin, this.metrics.gridxbase);
 				dy = normalize(scale(dy), this.metrics.gridmax, this.metrics.gridmin, this.metrics.gridybase);
@@ -145,8 +158,8 @@
 				down: function(e) {
 					if (!bigO.mouse.is_over) return
 					bigO.mouse.is_down = 1
-					bigO.mouse.x = e.x
-					bigO.mouse.y = e.y
+					bigO.mouse.x = e.x || e.clientX
+					bigO.mouse.y = e.y || e.clientY
 					bigO.mouse.onmove.start()
 					bigO.metrics.gridxbase = bigO.metrics.gridx
 					bigO.metrics.gridybase = bigO.metrics.gridy
@@ -176,7 +189,7 @@
 
 			// number of 10+ pixel steps fitting into one grid block: 2^floor(log2(gridx / steps))
 			steps = Math.pow(2, Math.floor(Math.log(gridx / steps) / Math.LN2))
-			// number of total steps fitting onto the canvas
+			// add finer steps for the 0..1 range + the remaining steps fitting onto the canvas
 			max_steps = (s = Math.floor(gridx / 2)) + Math.floor(steps * (this.metrics.w / gridx - 1))
 
 			this.canvas.lineWidth = 3
@@ -256,23 +269,17 @@
 			}
 
 			this.canvas.textBaseline = 'top'
-			this.canvas.font = 
-				window.getMatchedCSSRules(document.getElementsByTagName('p')[0])[0].style.fontSize + " " + 
-				window.getMatchedCSSRules(document.documentElement)[0].style.fontFamily
+			this.canvas.font = this.font
 
 			add_label.apply(this, ['input size', m.w - 80, m.h - 30])
 			add_label.apply(this, ['time', -50, 10, 1])
 		}
 
 		this.redraw = function() {
+			this.update_ui()
 			this.draw_grid()
 			this.algorithms.each(this.draw_algorithm, { canvas: this.canvas, metrics: this.metrics })
 			this.draw_labels()
-		}
-
-		this.update_ui = function() {
-			var list = 'gridx,gridy,p,c'
-			list.split(',').each(function(item) { $(item).value = this.metrics[item]; }, this)
 		}
 
 		this.refresh = function(new_metrics) {
@@ -283,18 +290,18 @@
 
 			m.offx = x
 			m.offy = y
-			// available width, assuming a centered canvas
-			canvas.width = m.w = Math.max(m.minx, document.viewport.getWidth() - x)
-			// available height, minus a constant 5 to avoid scrolling (chrome)
+			// available width, minus offset, left border, and a "safety" pixel
+			canvas.width = m.w = Math.max(m.minx, document.viewport.getWidth() - x - 2)
+			// available height, minus 5 pixel to avoid scrolling (Chrome/FF, probably css defaults)
 			canvas.height = m.h = Math.max(m.miny, document.viewport.getHeight() - y - 5)
 
 			// update metrics with valid numbers
 			if (typeof new_metrics === 'object') {
+				console.log(new_metrics)
 				for (var k in new_metrics)
-					if (typeof new_metrics[k] === 'number' && !Number.isNaN(new_metrics[k]))
-						m[k] = new_metrics[k]
+					if (!isNaN(new_metrics[k])) m[k] = parseFloat(new_metrics[k])
 				if (new_metrics.reset) m.gridx = m.gridy = m.griddef
-				this.update_ui()
+				console.log(m)
 			}
 
 			this.redraw()
@@ -319,7 +326,7 @@
 			if (index < 0) index += 1 // revert colormap for negatives
 
 			// edge cases, string values
-			if (index <= 0 || Number.isNaN(index / 1)) return this.hex_color(colors[0])
+			if (index <= 0 || isNaN(index / 1)) return this.hex_color(colors[0])
 			if (index >= 1) return this.hex_color(colors.slice(-1)[0])
 
 			// the ratio between two colors
