@@ -11,13 +11,13 @@
 			this.metrics = { minx: 500, miny: 500, gridx: 20, gridy: 20, griddef: 20, gridmax: 300, gridmin: 0.0001, p: 3, c: 3 }
 
 			this.algorithms = [
-				['logarithmic', 'log(n)', 'Math.log(n)', 0, '#ff00ff'], 
-				['linear', 'n', 'n', 0, '#8800ff'], 
-				['loglinear', 'log(n) * n', 'Math.log(n) * n', 0, ''], 
-				['quadratic', 'n^2', 'Math.pow(n, 2)', 0, ''], 
-				['polynomial', 'n^p', 'Math.pow(n, p)', 0, ''], 
-				['exponential', 'c^n', 'Math.pow(c, n)', 0, ''], 
-				['factorial', 'n!', 'bigO.gamma_integral(n)', 0, '']
+				['logarithmic', 'log(n)', 'Math.log(n)', 0, 'ff00ff'], 
+				['linear', 'n', 'n', 0, '8800ff'], 
+				['loglinear', 'log(n) * n', 'Math.log(n) * n', 0, '3333ff'], 
+				['quadratic', 'n^2', 'Math.pow(n, 2)', 0, '00ff00'], 
+				['polynomial', 'n^p', 'Math.pow(n, p)', 0, 'ffff00'], 
+				['exponential', 'c^n', 'Math.pow(c, n)', 0, 'ff8800'], 
+				['factorial', 'n!', 'bigO.gamma_integral(n)', 0, 'ff0000']
 				// ['factorial', '$A($R(1, n)).reduce(function(a, b) { return a * b; }, 1)']
 			]
 
@@ -59,7 +59,7 @@
 
 			var init_algorithm = function(item, i) {
 				this.algorithms[i][3] = new Function("n", "p", "c", "return " + item[2] + ";");
-				this.algorithms[i][4] = this.color_map(colors, this.algorithms.length - i - 1, this.algorithms.length - 1)
+				// this.algorithms[i][4] = this.color_map(colors, this.algorithms.length - i - 1, this.algorithms.length - 1)
 			}
 
 			this.algorithms.each(init_algorithm, this)
@@ -179,9 +179,8 @@
 			// number of total steps fitting onto the canvas
 			max_steps = (s = Math.floor(gridx / 2)) + Math.floor(steps * (this.metrics.w / gridx - 1))
 
-			this.canvas.font = "normal 12px verdana"
 			this.canvas.lineWidth = 3
-			this.canvas.fillStyle = this.canvas.strokeStyle = '#' + color
+			this.canvas.strokeStyle = '#' + color
 			this.canvas.beginPath()
 
 			for (var i = 0; i < max_steps; i++) {
@@ -192,11 +191,6 @@
 				this.canvas[i ? 'lineTo' : 'moveTo'](x, y)
 				if (y < 0) break
 			}
-
-			// find an endpoint for the label
-			// x = Math.min(x, this.n - this.canvas.measureText(name).width - pad)
-			// y = (value > height ? 2 * pad : y - pad) + (index % 2 ? 50 : 0)
-			// this.canvas.fillText(name, x, y)
 
 			this.canvas.stroke()
 			this.canvas.closePath()
@@ -221,8 +215,10 @@
 			lines.each(draw_line, this)
 		}
 
-		this.show_settings = function() {
-			var gridx = this.metrics.gridx, gridy = this.metrics.gridy
+		this.draw_labels = function() {
+			var m = this.metrics, gridx = m.gridx, gridy = m.gridy
+
+
 			var list = [
 				['grid X size', gridx], 
 				['grid Y size', gridy], 
@@ -231,19 +227,47 @@
 			]
 			var show_value = function(item, i) {
 				var x = this.metrics.w - 200, y = (i + 1) * 20
-				this.canvas.fillStyle = "rgba(200, 200, 200, 0.2)"
+				this.canvas.fillStyle = "rgba(200, 200, 100, 0.5)"
 				this.canvas.fillRect(x - 5, y - 15, 200, 20)
 				this.canvas.fillStyle = "#eee"
 				this.canvas.fillText(item[0], x, y);
 				this.canvas.fillText(item[1].toFixed(5), x + 120, y);
 			}
-			list.each(show_value, this)
+			// list.each(show_value, this)
+
+
+			// find an endpoint for the label
+			// x = Math.min(x, this.n - this.canvas.measureText(name).width - pad)
+			// y = (value > height ? 2 * pad : y - pad) + (index % 2 ? 50 : 0)
+			// this.canvas.fillText(name, x, y)
+
+
+			var add_label = function(text, x, y, vertical) {
+				var padding = 5, mod = 0, width = this.canvas.measureText(text).width
+				if (vertical) {
+					this.canvas.save()
+					this.canvas.rotate(-Math.PI / 2)
+				}
+				this.canvas.fillStyle = "rgba(60, 60, 60, 0.7)"
+				this.canvas.fillRect(x - padding, y, width + 2 * padding, 20)
+				this.canvas.fillStyle = "#fff"
+				this.canvas.fillText(text, x, y + 3)
+				if (vertical) this.canvas.restore()
+			}
+
+			this.canvas.textBaseline = 'top'
+			this.canvas.font = 
+				window.getMatchedCSSRules(document.getElementsByTagName('p')[0])[0].style.fontSize + " " + 
+				window.getMatchedCSSRules(document.documentElement)[0].style.fontFamily
+
+			add_label.apply(this, ['input size', m.w - 80, m.h - 30])
+			add_label.apply(this, ['time', -50, 10, 1])
 		}
 
 		this.redraw = function() {
 			this.draw_grid()
 			this.algorithms.each(this.draw_algorithm, { canvas: this.canvas, metrics: this.metrics })
-			// this.show_settings()
+			this.draw_labels()
 		}
 
 		this.update_ui = function() {
