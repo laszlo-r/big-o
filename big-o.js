@@ -7,70 +7,133 @@
 			this.canvas = $('canvas').getContext('2d');
 			this.window_resize = Event.on(window, 'resize', function() { window.bigO.lazy_refresh(); })
 
-			var colors = "ff0000,ffff00,00ff00,6666ff"
-			colors = colors.split(',').map(function(a) { return a.match(/.{2}/g).map(function(b) { return parseInt(b, 16); }); })
-
-			this.metrics = { minx: 500, miny: 500, gridx: 20, gridy: 20, p: 3, c: 3 }
+			this.colors = "ff0000,ffff00,00ff00,00ffff,4444ff,ff00ff"
+			this.metrics = { minx: 500, miny: 500, gridx: 20, gridy: 20, griddef: 20, gridmax: 300, gridmin: 0.0001, p: 3, c: 3 }
 
 			this.algorithms = [
-				['logarithmic', 'Math.log(n) / Math.LN2'], 
-				['linear', 'n'], 
-				['loglinear', 'Math.log(n) / Math.LN2 * n'], 
-				['quadratic', 'Math.pow(n, 2)'], 
-				['polynomial', 'Math.pow(n, p)'], 
-				['exponential', 'Math.pow(c, n)'], 
-				['factorial', 'bigO.gamma_integral(n)']
+				['logarithmic', 'log(n)', 'Math.log(n)', 0, '#ff00ff'], 
+				['linear', 'n', 'n', 0, '#8800ff'], 
+				['loglinear', 'log(n) * n', 'Math.log(n) * n', 0, ''], 
+				['quadratic', 'n^2', 'Math.pow(n, 2)', 0, ''], 
+				['polynomial', 'n^p', 'Math.pow(n, p)', 0, ''], 
+				['exponential', 'c^n', 'Math.pow(c, n)', 0, ''], 
+				['factorial', 'n!', 'bigO.gamma_integral(n)', 0, '']
 				// ['factorial', '$A($R(1, n)).reduce(function(a, b) { return a * b; }, 1)']
 			]
 
-			var integral = function(F, a, b, step) {
-				var area = function(x) { return step * (F(x + step) + F(x)) / 2; }
-				var value, result = 0
+			this.setup_algorithms()
+			this.event_handlers()
+			this.setup_ui()
+			this.lazy_refresh(50)
+		}
+
+		this.setup_algorithms = function() {
+
+			// used for estimating the gamma function (for the non-discrete factorial)
+			var integral = function(F, range) {
+				var a = range[0], b = range[1], step = range[2], f1 = F(a), f2, area, result = 0
+
+				// sum up areas at each interval
 				for (var i = a; i < b; i += step) {
-					value = area(i)
-					if (!Number.isNaN(value)) result += value
+					f2 = F(i + step) // F at the next step
+					area = step * (f1 + f2) / 2 // estimated area between f1 and f2
+					f1 = f2 // use this on the next step
+					if (!Number.isNaN(area)) result += area
 				}
+
+				// if (b - a) is not properly dividable by step, we have to add the remaining area
 				if (i > b) result += (b - i + step) * (F(b) + F(i - step)) / 2
 				return result;
 			}
 
-			var irange = [0, 10, 0.05]
-			var gamma = function(x, p) { return Math.exp(-x) * Math.pow(x, p); }
-			this.gamma_integral = function(n) { return integral(function(x) { return gamma(x, n); }, irange[0], irange[1], irange[2]); }
+			// range and interval on which gamma should be calculated (gamma gets insignificantly small after x = 10)
+			var range = [0, 10, 0.05]
 
-			var init_function = function(item, i) {
-				this.algorithms[i][2] = new Function("n", "p", "c", "return " + item[1] + ";");
-				this.algorithms[i][3] = this.color_map(colors, this.algorithms.length - i - 1, this.algorithms.length - 1)
+			// the gamma function
+			var gamma = function(x, p) { return Math.exp(-x) * Math.pow(x, p); }
+
+			// calculate the gamma integral for a given n
+			this.gamma_integral = function(n) { return integral(function(x) { return gamma(x, n); }, range); }
+
+			var colors = this.colors.split(',').map(function(a) { return a.match(/.{2}/g).map(function(b) { return parseInt(b, 16); }); })
+
+			var init_algorithm = function(item, i) {
+				this.algorithms[i][3] = new Function("n", "p", "c", "return " + item[2] + ";");
+				this.algorithms[i][4] = this.color_map(colors, this.algorithms.length - i - 1, this.algorithms.length - 1)
 			}
 
-			this.algorithms.each(init_function, this)
-			this.event_handlers()
-			this.lazy_refresh(50)
+			this.algorithms.each(init_algorithm, this)
+		}
 
+		this.setup_ui = function() {
+			$('algorithms').insert({ 
+				top: this.algorithms.map(
+					function(x) { return "- <b style='color: #" + x[4] + "'>" + x[0] + ":</b> " + x[1]; }
+				).join("<br />")
+			})
+			$('gridx').value = this.metrics.gridx
+			$('gridy').value = this.metrics.gridy
+			$('p').value = this.metrics.p
+			$('c').value = this.metrics.c
 		}
 
 		this.event_handlers = function() {
 
-			this.resize_event = function(e) {
-				var dx = e.x - this.mouse.x, 
-					dy = e.y - this.mouse.y
+			// scaling by dragging on the canvas
+			// scale grid size by powers of 2, essentially doubling/halving every 50 pixels
+			var scale = function(x) { return Math.pow(2, x / 50); }
 
-				// scaling by canvas dragging
-				// var scale = function(d) { return Math.pow(2, d / 50); }
-				// this.metrics.gridx = this.metrics.gridxbase * scale(dx)
-				// this.metrics.gridy = this.metrics.gridybase * scale(-dy)
+			// normalize gridsize to a given range, then round it to simple numbers (round_to digits, at most max_fraction digits)
+			var normalize = function(x, max, min, base) {
+				var round_to = 2, max_fraction = 4 // max_fraction is sorta tied to metrics.gridmin
 
-				// scaling by dragging the 2x2 point of the grid
-				this.metrics.gridx = (e.x - this.metrics.offx) / 2
-				this.metrics.gridy = (this.metrics.h - e.y + this.metrics.offy) / 2
+				// multiply scale with the previously set gridsize (so x becomes the desired gridsize)
+				x *= base
 
-				// console.log([this.metrics.gridx, this.metrics.gridy, dx, dy].join(', '))
-				this.lazy_refresh(5)
-				this.refresh()
+				// place of most significant digit (100 -> 3; 0.1 -> 0, 0.0001 -> -3)
+				var c = Math.floor(Math.log(x) / Math.LN10) + 1
+
+				// a 10-based number which is round_to magnitudes smaller than x (but minimum 0.0001, depending on max_fraction)
+				var d = Math.pow(10, Math.max(-max_fraction, c - round_to))
+
+				// round x to the round_to significant digits
+				// for example: x = 123,    c = 3, round_to = 2, d = 10,    x = floor(123 / 10) * 10 = 120
+				// and another: x = 0.7354, c = 0, round_to = 3, d = 0.001, x = floor(0.7354 / 0.001) * 0.001 = 0.735
+				x = Math.floor(x / d) * d
+
+				// contain in the given range (an extremely large or small grid is useless, and distorts calculations anyway)
+				x = Math.min(max, Math.max(min, x))
+
+				// digits to show: if < 1, round_to - c (but at most max_fraction digits), otherwise round_to - c (but minimum 0)
+				d = c < 0 ? Math.min(max_fraction, round_to - c) : Math.max(0, round_to - c)
+
+				// return normalized number (float with trailing bits) and the converted-to-string number
+				return [x, x.toFixed(d)]
 			}
 
-			var canvas = $('canvas')
+			// this is called on mouse dragging
+			this.resize_event = function(e) {
+				// mouse movement relative to mousedown coordinates
+				var dx = e.x - this.mouse.x, 
+					dy = -(e.y - this.mouse.y)
 
+				// scale and normalize movement
+				dx = normalize(scale(dx), this.metrics.gridmax, this.metrics.gridmin, this.metrics.gridxbase);
+				dy = normalize(scale(dy), this.metrics.gridmax, this.metrics.gridmin, this.metrics.gridybase);
+
+				// store the simplified grid sizes
+				this.metrics.gridx = dx[0]
+				this.metrics.gridy = dy[0]
+
+				// display the properly string-converted sizes
+				$('gridx').value = dx[1]
+				$('gridy').value = dy[1]
+
+				// don't refresh on every single movement
+				this.lazy_refresh(5)
+			}
+
+			// hold mouse-related info here
 			this.mouse = {
 				x: 0, 
 				y: 0, 
@@ -94,16 +157,18 @@
 				}
 			}
 
+			var canvas = $('canvas')
 			for (var k in this.mouse)
 				if (typeof this.mouse[k] === 'function')
 					this.mouse['on' + k] = canvas.on('mouse' + k, this.mouse[k])
 
+			// stop the initiated movement handler, a mousedown event will start it
 			this.mouse.onmove.stop()
 		}
 
 
 		this.draw_algorithm = function(item, index) {
-			var name = item[0], func = item[2], color = item[3], height = this.metrics.h
+			var name = item[0], func = item[3], color = item[4], height = this.metrics.h
 			var x, y, value, pad = 10, s, steps = 5, max_steps, gridx = this.metrics.gridx, gridy = this.metrics.gridy
 
 			// gridx and gridy represent the size of an 1*1 grid in pixels
@@ -170,7 +235,7 @@
 				this.canvas.fillRect(x - 5, y - 15, 200, 20)
 				this.canvas.fillStyle = "#eee"
 				this.canvas.fillText(item[0], x, y);
-				this.canvas.fillText(item[1].toFixed(3), x + 120, y);
+				this.canvas.fillText(item[1].toFixed(5), x + 120, y);
 			}
 			list.each(show_value, this)
 		}
@@ -178,10 +243,15 @@
 		this.redraw = function() {
 			this.draw_grid()
 			this.algorithms.each(this.draw_algorithm, { canvas: this.canvas, metrics: this.metrics })
-			this.show_settings()
+			// this.show_settings()
 		}
 
-		this.refresh = function() {
+		this.update_ui = function() {
+			var list = 'gridx,gridy,p,c'
+			list.split(',').each(function(item) { $(item).value = this.metrics[item]; }, this)
+		}
+
+		this.refresh = function(new_metrics) {
 			var start = new Date(), 
 				m = this.metrics, 
 				canvas = $('canvas'), 
@@ -190,17 +260,27 @@
 			m.offx = x
 			m.offy = y
 			// available width, assuming a centered canvas
-			canvas.width = m.w = Math.max(m.minx, document.viewport.getWidth() - x * 2)
+			canvas.width = m.w = Math.max(m.minx, document.viewport.getWidth() - x)
 			// available height, minus a constant 5 to avoid scrolling (chrome)
 			canvas.height = m.h = Math.max(m.miny, document.viewport.getHeight() - y - 5)
 
+			// update metrics with valid numbers
+			if (typeof new_metrics === 'object') {
+				for (var k in new_metrics)
+					if (typeof new_metrics[k] === 'number' && !Number.isNaN(new_metrics[k]))
+						m[k] = new_metrics[k]
+				if (new_metrics.reset) m.gridx = m.gridy = m.griddef
+				this.update_ui()
+			}
+
 			this.redraw()
 			// this.debug('refresh at ' + start.toLocaleString() + ' in ' + ((new Date()).getTime() - start.getTime()) / 1000 + ' seconds')
+			return false;
 		}
 
 		this.lazy_refresh = function(time) {
 			if (this.last_resize_id) clearTimeout(this.last_resize_id)
-			this.last_resize_id = setTimeout(function() { bigO.refresh(); }, time || 500)
+			this.last_resize_id = setTimeout(function() { bigO.refresh(); }, time || 100)
 		}
 
 
