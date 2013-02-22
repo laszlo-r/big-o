@@ -7,9 +7,6 @@
 			this.canvas = $('canvas').getContext('2d');
 			this.window_resize = Event.on(window, 'resize', function() { window.bigO.lazy_refresh(); })
 
-			// this.colors = "ff0000,ffff00,00ff00,00ffff,4444ff,ff00ff"
-			// this.colors = this.colors.split(',').map(function(a) { return a.match(/.{2}/g).map(function(b) { return parseInt(b, 16); }); })
-
 			this.metrics = { minx: 500, miny: 500, gridx: 20, gridy: 20, griddef: 20, gridmax: 300, gridmin: 0.0001, p: 3, c: 3 }
 
 			this.algorithms = [
@@ -20,11 +17,10 @@
 				['polynomial', 'n^p', 'Math.pow(n, p)', 0, 'ffff00'], 
 				['exponential', 'c^n', 'Math.pow(c, n)', 0, 'ff8800'], 
 				['factorial', 'n!', 'bigO.gamma_integral(n)', 0, 'ff0000']
-				// ['factorial', '$A($R(1, n)).reduce(function(a, b) { return a * b; }, 1)']
 			]
 
 			this.setup_algorithms()
-			this.event_handlers()
+			this.setup_scaling()
 			this.setup_ui()
 			this.lazy_refresh(50)
 		}
@@ -59,7 +55,6 @@
 
 			var init_algorithm = function(item, i) {
 				this.algorithms[i][3] = new Function("n", "p", "c", "return " + item[2] + ";");
-				// this.algorithms[i][4] = this.color_map(this.colors, this.algorithms.length - i - 1, this.algorithms.length - 1)
 			}
 
 			this.algorithms.each(init_algorithm, this)
@@ -89,7 +84,7 @@
 			this.ui_list.each(function(item) { $(item).value = this.metrics[item]; }, this)
 		}
 
-		this.event_handlers = function() {
+		this.setup_scaling = function() {
 
 			// scaling by dragging on the canvas
 			// scale grid size by powers of 2, essentially doubling/halving every 50 pixels
@@ -129,7 +124,6 @@
 				var dx = (e.x || e.clientX) - this.mouse.x, 
 					dy = -((e.y || e.clientY) - this.mouse.y)
 
-				console.log([dx, dy])
 				// scale and normalize movement
 				dx = normalize(scale(dx), this.metrics.gridmax, this.metrics.gridmin, this.metrics.gridxbase);
 				dy = normalize(scale(dy), this.metrics.gridmax, this.metrics.gridmin, this.metrics.gridybase);
@@ -229,31 +223,12 @@
 		}
 
 		this.draw_labels = function() {
-			var m = this.metrics, gridx = m.gridx, gridy = m.gridy
-
-
-			var list = [
-				['grid X size', gridx], 
-				['grid Y size', gridy], 
-				['polynomial base', this.metrics.p], 
-				['exponential base', this.metrics.c]
-			]
-			var show_value = function(item, i) {
-				var x = this.metrics.w - 200, y = (i + 1) * 20
-				this.canvas.fillStyle = "rgba(200, 200, 100, 0.5)"
-				this.canvas.fillRect(x - 5, y - 15, 200, 20)
-				this.canvas.fillStyle = "#eee"
-				this.canvas.fillText(item[0], x, y);
-				this.canvas.fillText(item[1].toFixed(5), x + 120, y);
-			}
-			// list.each(show_value, this)
-
+			var m = this.metrics
 
 			// find an endpoint for the label
 			// x = Math.min(x, this.n - this.canvas.measureText(name).width - pad)
 			// y = (value > height ? 2 * pad : y - pad) + (index % 2 ? 50 : 0)
 			// this.canvas.fillText(name, x, y)
-
 
 			var add_label = function(text, x, y, vertical) {
 				var padding = 5, mod = 0, width = this.canvas.measureText(text).width
@@ -290,6 +265,7 @@
 
 			m.offx = x
 			m.offy = y
+
 			// available width, minus offset, left border, and a "safety" pixel
 			canvas.width = m.w = Math.max(m.minx, document.viewport.getWidth() - x - 2)
 			// available height, minus 5 pixel to avoid scrolling (Chrome/FF, probably css defaults)
@@ -297,15 +273,12 @@
 
 			// update metrics with valid numbers
 			if (typeof new_metrics === 'object') {
-				console.log(new_metrics)
 				for (var k in new_metrics)
 					if (!isNaN(new_metrics[k])) m[k] = parseFloat(new_metrics[k])
 				if (new_metrics.reset) m.gridx = m.gridy = m.griddef
-				console.log(m)
 			}
 
 			this.redraw()
-			// this.debug('refresh at ' + start.toLocaleString() + ' in ' + ((new Date()).getTime() - start.getTime()) / 1000 + ' seconds')
 			return false;
 		}
 
