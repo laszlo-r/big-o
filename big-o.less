@@ -1,5 +1,21 @@
+/* 
+full-height #main which works with both larger and smaller windows:
+	html height 100%, body height inherit, #main min-height 100%
+padding #main would add a scrollbar (because 100% + padding), avoid this with:
+	::before and ::after with display block and some height
+preventing #canvas from falling below #main:
+	set a min-width on parent #big-o
+*/
 
-html { font: 10px verdana; }
+@media screen and (max-width: 480px) {
+	/* add a top-down or "flippable" layout */
+}
+@media screen and (min-width: 480px) {
+	html	{ height: 100%; margin: 0px; padding: 0px; font: 10px verdana; }
+	body	{ height: inherit; }
+	#big-o	{ min-width: 480px; }
+	#main	{ width: 300px; xheight: 200px; min-height: 100%; overflow: hidden; }
+}
 
 body {
 	-webkit-touch-callout: none;
@@ -10,23 +26,24 @@ body {
 	user-select: none;
 }
 
-#big-o {
-	margin: 0px; padding: 0px; background: #060606; font-size: 100%; overflow: auto;
+#big-o					{ margin: 0px; padding: 0px; background: #060606; font-size: 100%;
+
+	#main				{ display: inline-block; margin: 0px; padding: 0px 10px; background: #222; color: #cccccc; 
+		&::before, 
+		&::after		{ content: ''; height: 10px; display: block; }
+	}
+	#canvas				{ display: inline-block; position: fixed; vertical-align: top; margin: 0px; padding: 0px; border-color: #666; border-width: 0px 0px 1px 1px; background: #060606; }
 
 	h1					{ font-size: 170%; color: #fff; margin: 5px 0px; }
 	h2					{ font-size: 120%; color: #fff; }
 	input				{ padding: 1px 3px; border: none; background: #363636; color: #fff; text-align: center; }
-	p					{ padding-left: 5px; font-size: 120%; 
+	a					{ color: #fff; text-decoration: none; }
+	a:hover				{ border-bottom: 1px solid #ccc; }
+	a.wiki-help			{ float: right; }
+	p					{ padding: 0px; font-size: 120%; 
 		span			{ margin-bottom: 5px; display: block; }
 		b.grid			{ margin-left: 10px; }
 		input			{ width: 40px; height: 14px; margin: 2px 5px 2px 2px; font-size: 100%; }
-		input#p, 
-		input#c			{ width: 30px; }
 	}
-	a					{ color: #fff; border-bottom: 1px dotted #999; text-decoration: none; }
-	a.wiki-help			{ float: right; }
-
-	#main				{ position: absolute; width: 300px; height: auto; padding: 5px; background: #222; color: #dddddd; }
-	#canvas				{ margin: 0px; border-left: 1px solid #666; border-bottom: 1px solid #666; margin-left: 320px; padding: 0px; background: #060606; }
 
 }

@@ -7,7 +7,7 @@
 			this.canvas = $('canvas').getContext('2d');
 			this.window_resize = Event.on(window, 'resize', function() { window.bigO.lazy_refresh(); })
 
-			this.metrics = { minx: 500, miny: 500, gridx: 20, gridy: 20, griddef: 20, gridmax: 300, gridmin: 0.0001, p: 3, c: 3 }
+			this.metrics = { minx: 300, miny: 300, gridx: 20, gridy: 20, griddef: 20, gridmax: 300, gridmin: 0.0001, p: 3, c: 3 }
 
 			this.algorithms = [
 				['logarithmic', 'log(n)', 'Math.log(n)', 0, 'ff00ff'], 
@@ -175,7 +175,7 @@
 
 
 		this.draw_algorithm = function(item, index) {
-			var name = item[0], func = item[3], color = item[4], height = this.metrics.h
+			var name = item[0], func = item[3], color = item[4]
 			var x, y, value, pad = 10, s, steps = 5, max_steps, gridx = this.metrics.gridx, gridy = this.metrics.gridy
 
 			// gridx and gridy represent the size of an 1*1 grid in pixels
@@ -184,7 +184,7 @@
 			// number of 10+ pixel steps fitting into one grid block: 2^floor(log2(gridx / steps))
 			steps = Math.pow(2, Math.floor(Math.log(gridx / steps) / Math.LN2))
 			// add finer steps for the 0..1 range + the remaining steps fitting onto the canvas
-			max_steps = (s = Math.floor(gridx / 2)) + Math.floor(steps * (this.metrics.w / gridx - 1))
+			max_steps = (s = Math.floor(gridx / 2)) + Math.floor(steps * this.metrics.w / gridx)
 
 			this.canvas.lineWidth = 3
 			this.canvas.strokeStyle = '#' + color
@@ -193,10 +193,10 @@
 			for (var i = 0; i < max_steps; i++) {
 				x = i <= s ? i / s : 1 + (i - s) / steps
 				value = func(x, this.metrics.p, this.metrics.c)
-				x = gridx * x//i / steps
-				y = height - gridy * value
+				x = gridx * x
+				y = this.metrics.h - gridy * value
 				this.canvas[i ? 'lineTo' : 'moveTo'](x, y)
-				if (y < 0) break
+				if (x > this.metrics.w || y < 0) break
 			}
 
 			this.canvas.stroke()
@@ -258,18 +258,21 @@
 		}
 
 		this.refresh = function(new_metrics) {
-			var start = new Date(), 
-				m = this.metrics, 
-				canvas = $('canvas'), 
-				x = canvas.offsetLeft, y = canvas.offsetTop
+			var start = new Date(), m = this.metrics, canvas = $('canvas')
+			var w = document.viewport.getWidth(), h = document.viewport.getHeight()
 
-			m.offx = x
-			m.offy = y
+			if (m.offx === undefined) {
+				m.offx = canvas.offsetLeft
+				m.offy = canvas.offsetTop
+			}
+
+			m.w = canvas.width
+			m.h = canvas.height
 
 			// available width, minus offset, left border, and a "safety" pixel
-			canvas.width = m.w = Math.max(m.minx, document.viewport.getWidth() - x - 2)
-			// available height, minus 5 pixel to avoid scrolling (Chrome/FF, probably css defaults)
-			canvas.height = m.h = Math.max(m.miny, document.viewport.getHeight() - y - 5)
+			// canvas.width = m.w = Math.max(m.minx, w - m.offx - 2)
+			// available height, minus 5 pixel to avoid scrolling (Chrome/FF, probably some default margin/padding)
+			// canvas.height = m.h = Math.max(m.miny, h - m.offy - 5)
 
 			// update metrics with valid numbers
 			if (typeof new_metrics === 'object') {
