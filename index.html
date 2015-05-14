@@ -8,9 +8,9 @@
 	<meta name='keywords' content='' />
 	<meta name='viewport' content='width=device-width' />
 	<link rel="copyright" href="//creativecommons.org/licenses/by-sa/3.0/" />
-	<link rel='stylesheet/less' href='big-o.less' type='text/css' />
+	<link rel='stylesheet/less' href='big-o.less?12' type='text/css' />
 	<script charset='utf-8'>less = { env: 'development', poll: 500 };</script>
-	<script src='rsc/less.js'></script>
+	<script src='rsc/less-1.3.3.js'></script>
 	<script charset='utf-8'>less.watch();</script>
 	<script src='rsc/prototype.js'></script>
 	<script src='big-o.js'></script>
@@ -29,8 +29,8 @@
 				<input id='gridx' type='text' name='gridx' value='' />x
 				<input id='gridy' type='text' name='gridy' value='' />
 			</span>
-			<span>- change the polynomial factor: <b>p = </b><input id='p' type='text' name='p' value='' /></span>
-			<span>- or the exponential factor: <b>c = </b><input id='c' type='text' name='c' value='' /></span>
+			<span>- change the polynomial: <b>p = </b><input id='p' type='text' name='p' value='' /></span>
+			<span>- or the exponential base: <b>c = </b><input id='c' type='text' name='c' value='' /></span>
 			<span>- open up the js console and mess around</span>
 		</p>
 		<h2>Time complexities shown:</h2>
@@ -51,6 +51,5 @@
 		</p>
 	</section>
 	<canvas id='canvas'></canvas>
-	<!-- <footer></footer> -->
 </body>
 </html>

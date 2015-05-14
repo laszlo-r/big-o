@@ -82,6 +82,10 @@
 
 		this.update_ui = function() {
 			this.ui_list.each(function(item) { $(item).value = this.metrics[item]; }, this)
+			if (this.metrics.gridxs) {
+				$('gridx').value = this.metrics.gridxs
+				$('gridy').value = this.metrics.gridys
+			}
 		}
 
 		this.setup_scaling = function() {
@@ -133,8 +137,8 @@
 				this.metrics.gridy = dy[0]
 
 				// display the properly string-converted sizes
-				$('gridx').value = dx[1]
-				$('gridy').value = dy[1]
+				this.metrics.gridxs = dx[1]
+				this.metrics.gridys = dy[1]
 
 				// don't refresh on every single movement
 				this.lazy_refresh(5)
@@ -251,6 +255,8 @@
 		}
 
 		this.redraw = function() {
+			this.canvas.fillStyle = '#000'
+			this.canvas.fillRect(0, 0, this.metrics.w, this.metrics.h)
 			this.update_ui()
 			this.draw_grid()
 			this.algorithms.each(this.draw_algorithm, { canvas: this.canvas, metrics: this.metrics })
@@ -270,9 +276,9 @@
 			m.h = canvas.height
 
 			// available width, minus offset, left border, and a "safety" pixel
-			// canvas.width = m.w = Math.max(m.minx, w - m.offx - 2)
+			canvas.width = m.w = Math.max(m.minx, w - m.offx - 2)
 			// available height, minus 5 pixel to avoid scrolling (Chrome/FF, probably some default margin/padding)
-			// canvas.height = m.h = Math.max(m.miny, h - m.offy - 5)
+			canvas.height = m.h = Math.max(m.miny, h - m.offy - 5)
 
 			// update metrics with valid numbers
 			if (typeof new_metrics === 'object') {
