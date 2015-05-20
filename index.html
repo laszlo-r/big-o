@@ -7,17 +7,15 @@
 	<meta name='description' content='A tweakable big-O complexity chart on canvas' />
 	<meta name='keywords' content='' />
 	<meta name='viewport' content='width=device-width' />
-	<link rel="copyright" href="//creativecommons.org/licenses/by-sa/3.0/" />
-	<link rel='stylesheet/less' href='big-o.less?12' type='text/css' />
-	<script charset='utf-8'>less = { env: 'development', poll: 500 };</script>
-	<script src='rsc/less-1.3.3.js'></script>
-	<script charset='utf-8'>less.watch();</script>
+	<link rel='copyright' href='//creativecommons.org/licenses/by-sa/3.0/' />
+	<link rel='stylesheet/less' href='big-o.less' type='text/css' />
+	<script src='rsc/less.min.js'></script>
 	<script src='rsc/prototype.js'></script>
 	<script src='big-o.js'></script>
 </head>
 <body id='big-o'>
 	<section id='main'>
-		<a class='wiki-help' href="http://simple.wikipedia.org/wiki/Big_O_notation" target='new'>(Big what?)</a>
+		<a class='wiki-help' href='http://simple.wikipedia.org/wiki/Big_O_notation' target='new'>(Big what?)</a>
 		<h1>Big-O on canvas</h1>
 		<p>This page shows how fast various algorithms are with different input sizes. While sorting 5 books is fast, sorting 500 books is much, much slower (not 100, but 10000 times slower).</p>
 		<p>But, if you have some tricky sorting method (blue line), it will be faster than comparing every book to every other (green line).</p>
